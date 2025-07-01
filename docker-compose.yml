@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=avaliacoesDb;Username=postgres;Password=postgres
+      Jwt__Key: essa_chave_eh_muito_boa_confia-123++!!
+      Jwt__Issuer: auth-service
+      Jwt__Audience: users
+    ports:
+      - "5001:80"
+
+  events-service:
+    build:
+      context: ./events-service
+    container_name: events-service
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=avaliacoesDb;Username=postgres;Password=postgres
+    ports:
+      - "5002:80"
+
+  avaliacoes-service:
+    build:
+      context: ./avaliacoes-service
+    container_name: avaliacoes-service
+    depends_on:
+      - postgres
+      - auth-service
+      - events-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=avaliacoesDb;Username=postgres;Password=postgres
+      Jwt__Key: essa_chave_eh_muito_boa_confia-123++!!
+      Jwt__Issuer: auth-service
+      Jwt__Audience: users
+      Services__Events: http://events-service
+    ports:
+      - "5003:80"
+  
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:80"  # Changed from 80 to match React default
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - auth-service
+      - avaliacoes-service
+      - events-service
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+
+volumes:
+  pgdata:

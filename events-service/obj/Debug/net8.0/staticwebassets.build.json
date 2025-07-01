@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "0bE/HUz8fSu6vuKC3cHD3qU2uNm5Cbh1gzPCZT+P24A=",
+  "Source": "events-service",
+  "BasePath": "_content/events-service",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
